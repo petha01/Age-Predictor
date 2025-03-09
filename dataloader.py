@@ -1,7 +1,9 @@
-import torch
-import torchvision.transforms as T
-import torchvision.datasets as dset
+import os
+import numpy as np
+import pandas as pd
+from tqdm import tqdm
 from torch.utils.data import DataLoader, sampler
+import torchvision.transforms as T
 
 train_transform = T.Compose([
     T.RandomHorizontalFlip(),
@@ -15,24 +17,29 @@ test_transform = T.Compose([
     T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
-def get_utkface_loaders(dataset_path="./dataset", batch_size=64, num_train=30000, num_valid=5000):
-    utkface_dataset = dset.ImageFolder(dataset_path, transform=train_transform)
-    if (num_train + num_valid) > len(utkface_dataset):
-        raise ValueError("Number of train and validation samples exceeds total number of samples")
+BASE_DIR = './dataset'
 
-    loader_train = DataLoader(
-        utkface_dataset, batch_size=batch_size, num_workers=2,
-        sampler=sampler.SubsetRandomSampler(range(num_train))
-    )
+image_paths = []
+age_labels = []
+age_class_labels = []
 
-    loader_val = DataLoader(
-        utkface_dataset, batch_size=batch_size, num_workers=2,
-        sampler=sampler.SubsetRandomSampler(range(num_train, num_train+num_valid))
-    )
+for filename in tqdm(os.listdir(BASE_DIR)):
+    image_path = os.path.join(BASE_DIR, filename)
+    temp = filename.split('_')
+    age = int(temp[0])
+    age_class = age // 5
 
-    loader_test = DataLoader(
-        dset.ImageFolder(dataset_path, transform=test_transform),
-        batch_size=batch_size, num_workers=2, shuffle=False
-    )
+    image_paths.append(image_path)
+    age_labels.append(age)
+    age_class_labels.append(age_class)
 
-    return loader_train, loader_val, loader_test
+data = {
+        'image_path': image_paths,
+        'age': age_labels,
+        'age_class': age_class
+    }
+df = pd.DataFrame(data)
+# Remove anything at age 100 or greater
+df = df[df['age'] < 100]
+
+# Fix this
