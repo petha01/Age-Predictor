@@ -2,3 +2,4 @@ from .resnet_classification import ResNetClassification
 from .resnet_regression import ResNetRegression
 from .resnet_pretrained import ResNetPretrained
 from .resnet_slow_downsample import ResNetSlowDownSample
+from .resnet_dropout import ResNetDropout
