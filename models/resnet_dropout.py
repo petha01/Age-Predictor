@@ -12,7 +12,7 @@ class ResNetBlock(nn.Module):
         self.bn2 = nn.BatchNorm2d(out_channels)
 
         # Add dropout
-        self.dropout = nn.Dropout(0.5)
+        self.dropout = nn.Dropout(0.25)
         
         self.shortcut = nn.Sequential()
         # Adjust residual size if stride is larger than 1
