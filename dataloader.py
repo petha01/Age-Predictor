@@ -52,7 +52,7 @@ def get_utkface_loaders(target_column, batch_size=64, num_train=10000, num_valid
     data = {
             'image_path': image_paths,
             'age': age_labels,
-            'age_class': age_class
+            'age_class': age_class_labels
         }
     df = pd.DataFrame(data)
     # Remove anything at age 100 or greater
