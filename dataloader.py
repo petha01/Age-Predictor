@@ -19,13 +19,11 @@ class DataFrameDataset(Dataset):
         return len(self.dataframe)
 
     def __getitem__(self, index):
-        feature = self.features[index]
-        # Convert image path to tensor
-        image = Image.open(feature).convert('RGB')
-        feature = self.transform(image)
-        label = self.labels[index]
+        feature = Image.open(self.features[index]).convert('RGB')
         feature = self.transform(feature)
-        return torch.tensor(feature, dtype=torch.float32), torch.tensor(label, dtype=torch.float32)
+        label = torch.tensor(self.labels[index], dtype=torch.float32)
+        
+        return feature, label
 
 def get_utkface_loaders(target_column, batch_size=64, num_train=10000, num_valid=2000, num_test=2000):
     transform = T.Compose([

@@ -1,51 +1,63 @@
 import torch
 import torch.nn as nn
 
-def flatten(x):
-    N = x.shape[0]
-    return x.view(N, -1)
-
-class Flatten(nn.Module):
-    def forward(self, x):
-        return flatten(x)
-
 class ResNetBlock(nn.Module):
-    
-    def __init__(self, in_channel, out_channel, k_size, stride, padding):
+    def __init__(self, in_channels, out_channels, stride=1):
         super(ResNetBlock, self).__init__()
-        self.conv_1 = nn.Conv2d(in_channel, out_channel, (k_size, k_size), padding=padding, stride=stride)
-        nn.init.kaiming_normal_(self.conv_1.weight)
-        self.conv_2 = nn.Conv2d(out_channel, out_channel, (k_size, k_size), padding=padding, stride=1)
-        nn.init.kaiming_normal_(self.conv_1.weight)
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
+        self.bn1 = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
-        self.bn = nn.BatchNorm2d(out_channel)
-
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+        
+        self.shortcut = nn.Sequential()
+        # Adjust residual size if stride is larger than 1
+        if stride != 1 or in_channels != out_channels:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride),
+                nn.BatchNorm2d(out_channels)
+            )
+    
     def forward(self, x):
-        out = self.conv_1(x)
-        out = self.bn(out)
+        res = self.shortcut(x)
+        out = self.conv1(x)
+        out = self.bn1(out)
         out = self.relu(out)
-        out = self.conv_2(out)
-        out = self.bn(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out += res
         out = self.relu(out)
         return out
+
+def getResnetSequence(in_channel, out_channel, stride):
+    layers = nn.Sequential(
+        ResNetBlock(in_channel, out_channel, stride)
+    )
+    return layers
 
 class ResNetClassification(nn.Module):
     
     def __init__(self, num_class):
         super(ResNetClassification, self).__init__()
-        self.model = nn.Sequential(
-            nn.Conv2d(3, 64, (7,7), padding=3, stride=2),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.MaxPool2d((3,3), stride=2, padding=1),
-            ResNetBlock(64, 64, 3, 1, 1),
-            ResNetBlock(64, 128, 3, 1, 1),
-            ResNetBlock(128, 256, 3, 2, 1),
-            ResNetBlock(256, 512, 3, 1, 1),
-            nn.AvgPool2d((4,4)),
-            Flatten(),
-            nn.Linear(512, num_class)
-        )
-        
+        self.conv1 = nn.Conv2d(3, 64, (7,7), padding=3, stride=2)
+        self.maxPool = nn.MaxPool2d((3,3), stride=2, padding=1)
+        self.relu = nn.ReLU()
+        self.conv2_x = getResnetSequence(64, 64, 1)
+        self.conv3_x = getResnetSequence(64, 128, 1)
+        self.conv4_x = getResnetSequence(128, 256, 1)
+        self.conv5_x = getResnetSequence(256, 512, 2)
+        self.avgPool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc1 = nn.Linear(512, num_class)        
+
     def forward(self, x):
-        return self.model(x)
+        out = self.conv1(x)
+        out = self.maxPool(out)
+        out = self.relu(out)
+        out = self.conv2_x(out)
+        out = self.conv3_x(out)
+        out = self.conv4_x(out)
+        out = self.conv5_x(out)
+        out = self.avgPool(out)
+        out = torch.flatten(out, 1)
+        out = self.fc1(out)
+        return out
