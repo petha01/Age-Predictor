@@ -42,20 +42,14 @@ class ResNetSlowDownSample(nn.Module):
         super(ResNetSlowDownSample, self).__init__()
         pretrained_resnet = resnet18(weights=ResNet18_Weights.DEFAULT)
 
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1)
         self.conv1.weight.data = pretrained_resnet.conv1.weight.data.clone()
         self.bn1 = nn.BatchNorm2d(64)
         self.bn1.load_state_dict(pretrained_resnet.bn1.state_dict())
 
         self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1)
-        self.conv2.weight.data = pretrained_resnet.conv1.weight.data.clone()
         self.bn2 = nn.BatchNorm2d(64)
         self.bn2.load_state_dict(pretrained_resnet.bn1.state_dict())
-
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1)
-        self.conv3.weight.data = pretrained_resnet.conv1.weight.data.clone()
-        self.bn3 = nn.BatchNorm2d(64)
-        self.bn3.load_state_dict(pretrained_resnet.bn1.state_dict())
 
         self.relu = nn.ReLU(inplace=True)
 
@@ -92,9 +86,6 @@ class ResNetSlowDownSample(nn.Module):
         out = self.relu(out)
         out = self.conv2(out)
         out = self.bn2(out)
-        out = self.relu(out)
-        out = self.conv3(out)
-        out = self.bn3(out)
         out = self.relu(out)
         out = self.conv2_x(out)
         out = self.conv3_x(out)
