@@ -1,2 +1,3 @@
 from .resnet_classification import ResNetClassification
 from .resnet_regression import ResNetRegression
+from .resnet_pretrained import ResNetPretrained
